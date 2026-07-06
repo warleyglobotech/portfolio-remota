@@ -16,7 +16,7 @@ if st.button("Decodificar"):
         with st.spinner("Conectando ao motor de extração..."):
             try:
                 # Envia a URL para o seu backend (FastAPI)
-                response = requests.post("http://127.0.0.1:8000/api/v1/decode", json={"url": url_input})
+                response = requests.post("https://portfolio-remota.onrender.com/api/v1/decode", json={"url": url_input})
                 
                 if response.status_code == 200:
                     dados = response.json()
