@@ -11,7 +11,7 @@ from pymongo import MongoClient
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 2. CRIAÇÃO DO SERVIDOR (Esta linha tem que vir antes da rede!)
+# 2. CRIAÇÃO DO SERVIDOR
 app = FastAPI()
 
 # 3. MÓDULO 07: REDES E FIREWALL (CORS)
@@ -84,12 +84,13 @@ def endpoint_decodificar(payload: PayloadURL):
     try:
         palavra_processada = decodificar_matriz(payload.url)
         
-        registro_log = {
-            "url": payload.url,
-            "status": "sucesso"
-        }
-        collection.insert_one(registro_log)
-        logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
+        # --- BYPASS DO BANCO DE DADOS (Comentado para teste de Front-end) ---
+        # registro_log = {
+        #     "url": payload.url,
+        #     "status": "sucesso"
+        # }
+        # collection.insert_one(registro_log)
+        # logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
 
         return {"resultado": palavra_processada, "palavra_oculta": "HCWIDEO"}
 
