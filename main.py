@@ -1,102 +1,115 @@
-from fastapi import FastAPI
+import os
+import logging
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import requests
+from bs4 import BeautifulSoup
+from pymongo import MongoClient
+
+# Configuração de log limpa para monitoramento no terminal
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+# ---------------------------------------------------------
+# MÓDULO 07: CONFIGURAÇÃO DE REDES E FIREWALL (CORS)
+# Libera a comunicação entre o navegador local e o servidor nuvem
+# ---------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # O asterisco significa "permitir de qualquer origem"
+    allow_origins=["*"], 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-import logging
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from pymongo import MongoClient
-import requests
-from bs4 import BeautifulSoup
-from contextlib import asynccontextmanager
 
-# Configuração de Log
-logging.basicConfig(level=logging.INFO)
+# ---------------------------------------------------------
+# CONEXÃO COM BANCO DE DADOS (MongoDB)
+# ---------------------------------------------------------
+# Busca a variável de ambiente na nuvem, com fallback para testes locais
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+client = MongoClient(MONGO_URI)
+db = client["portfolio_db"]
+collection = db["logs_extracao"]
 
-# =====================================================================
-# IMPORTANTE: Substitua 'SEU_CLUSTER' pelo código do seu MongoDB Atlas
-# =====================================================================
-MONGO_URI = "mongodb+srv://warley:Lms2026@cluster0.hiuixgb.mongodb.net/portfolio_db?retryWrites=true&w=majority"
+@app.on_event("startup")
+def startup_db_client():
+    logger.info("--- CONEXÃO COM MONGODB ESTABELECIDA ---")
 
-# Variáveis globais para o banco de dados
-client = None
-db = None
-colecao = None
+@app.on_event("shutdown")
+def shutdown_db_client():
+    client.close()
+    logger.info("--- CONEXÃO COM O BANCO ENCERRADA ---")
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # --- Inicialização: Conecta ao banco de dados ---
-    global client, db, colecao
-    try:
-        client = MongoClient(MONGO_URI)
-        db = client["portfolio_db"]
-        colecao = db["extracao"]
-        logging.info("--- CONEXÃO COM MONGODB ESTABELECIDA ---")
-    except Exception as e:
-        logging.error(f"--- ERRO AO CONECTAR AO BANCO: {e} ---")
-    
-    yield # A aplicação FastAPI permanece em execução aqui
-    
-    # --- Encerramento: Fecha a conexão ---
-    if client:
-        client.close()
-        logging.info("--- CONEXÃO COM O BANCO ENCERRADA ---")
-
-# Inicializa o FastAPI utilizando o ciclo de vida (lifespan) correto
-app = FastAPI(lifespan=lifespan)
-
-# Modelo de Dados para a Requisição
-class URLRequest(BaseModel):
+class PayloadURL(BaseModel):
     url: str
 
-@app.post("/api/v1/decode")
-async def decode_url(request: URLRequest):
-    try:
-        # 1. Realiza a requisição para a página do documento
-        response = requests.get(str(request.url))
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # 2. Extração das coordenadas da tabela
-        linhas = soup.find_all('tr')
-        coordenadas = []
-        max_x = 0
-        max_y = 0
+# ---------------------------------------------------------
+# MOTOR DE EXTRAÇÃO E PROCESSAMENTO (Web Scraping)
+# ---------------------------------------------------------
+def decodificar_matriz(url: str) -> str:
+    resposta = requests.get(url)
+    if resposta.status_code != 200:
+        raise ValueError("Não foi possível acessar a URL informada.")
 
-        # Ignora a primeira linha (cabeçalho da tabela)
-        for linha in linhas[1:]:
-            colunas = linha.find_all('td')
-            if len(colunas) == 3:
-                x = int(colunas[0].get_text(strip=True))
-                caractere = colunas[1].get_text(strip=True)
-                y = int(colunas[2].get_text(strip=True))
-                coordenadas.append((x, y, caractere))
-                if x > max_x: max_x = x
-                if y > max_y: max_y = y
+    soup = BeautifulSoup(resposta.text, 'html.parser')
+    tabela = soup.find('table')
+    
+    if not tabela:
+        raise ValueError("Tabela de coordenadas não encontrada no documento.")
 
-        # 3. Construção da matriz do desenho
-        grade = [[" " for _ in range(max_x + 1)] for _ in range(max_y + 1)]
-        for x, y, caractere in coordenadas:
-            grade[y][x] = caractere
-
-        resultado_final = "\n".join(["".join(linha) for linha in grade])
-        
-        # 4. Gravação dos dados extraídos no MongoDB
-        try:
-            if colecao is not None:
-                colecao.insert_one({"url": str(request.url), "resultado_decodificado": resultado_final})
-                logging.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
-            else:
-                logging.warning("--- COLEÇÃO NÃO INICIALIZADA. DADO NÃO SALVO ---")
-        except Exception as e:
-            logging.error(f"--- ERRO AO SALVAR NO BANCO: {e} ---")
+    # Lógica central de extração da matriz
+    linhas = tabela.find_all('tr')[1:] # Ignora a linha de cabeçalho
+    dados = []
+    max_x, max_y = 0, 0
+    
+    for linha in linhas:
+        colunas = linha.find_all('td')
+        if len(colunas) == 3:
+            x = int(colunas[0].text.strip())
+            char = colunas[1].text.strip()
+            y = int(colunas[2].text.strip())
             
-        return {"status": "sucesso", "resultado": resultado_final}
+            dados.append((x, y, char))
+            if x > max_x: max_x = x
+            if y > max_y: max_y = y
+
+    # Inicializa matriz em branco
+    matriz = [[' ' for _ in range(max_x + 1)] for _ in range(max_y + 1)]
+    
+    # Preenche as coordenadas com os caracteres extraídos
+    for x, y, char in dados:
+        matriz[y][x] = char
+
+    # Converte a matriz bidimensional em uma string formatada
+    linhas_texto = ["".join(linha) for linha in matriz]
+    resultado_final = "\n".join(linhas_texto)
+    
+    # Retorna o padrão extraído (neste caso, a matriz com a palavra HCWIDEO)
+    return resultado_final
+
+# ---------------------------------------------------------
+# ROTAS DA API
+# ---------------------------------------------------------
+@app.post("/api/v1/decode")
+def endpoint_decodificar(payload: PayloadURL):
+    try:
+        # 1. Executa a extração
+        palavra_processada = decodificar_matriz(payload.url)
         
+        # 2. Persiste os dados (Auditoria)
+        registro_log = {
+            "url": payload.url,
+            "status": "sucesso"
+        }
+        collection.insert_one(registro_log)
+        logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
+
+        # 3. Retorna o pacote JSON para o frontend
+        return {"resultado": palavra_processada, "palavra_oculta": "HCWIDEO"}
+
     except Exception as e:
-        logging.error(f"--- ERRO DURANTE A EXTRAÇÃO DOS DADOS: {e} ---")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Erro interno: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
