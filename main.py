@@ -84,13 +84,13 @@ def endpoint_decodificar(payload: PayloadURL):
     try:
         palavra_processada = decodificar_matriz(payload.url)
         
-        # --- BYPASS DO BANCO DE DADOS (Comentado para teste de Front-end) ---
-        # registro_log = {
-        #     "url": payload.url,
-        #     "status": "sucesso"
-        # }
-        # collection.insert_one(registro_log)
-        # logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
+        # --- BANCO DE DADOS REATIVADO ---
+        registro_log = {
+            "url": payload.url,
+            "status": "sucesso"
+        }
+        collection.insert_one(registro_log)
+        logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
 
         return {"resultado": palavra_processada, "palavra_oculta": "HCWIDEO"}
 
