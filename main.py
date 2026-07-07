@@ -1,3 +1,12 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # O asterisco significa "permitir de qualquer origem"
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
