@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decodificador de Matrizes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Extrator de Coordenadas</h1>
+            <p>Insira a URL do documento fonte para processar e decodificar os dados.</p>
+        </header>
+
+        <section class="input-area">
+            <input type="url" id="inputUrl" placeholder="Cole o link aqui..." required autocomplete="off">
+            <button id="btnProcessar">Processar</button>
+        </section>
+
+        <div id="loading" class="escondido">
+            <p>Extraindo dados da matriz...</p>
+        </div>
+
+        <section id="areaResultado" class="escondido">
+            <h2>Palavra Oculta:</h2>
+            <p id="textoResultado"></p>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
