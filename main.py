@@ -7,16 +7,14 @@ import requests
 from bs4 import BeautifulSoup
 from pymongo import MongoClient
 
-# Configuração de log limpa para monitoramento no terminal
+# 1. Configuração de log
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# 2. CRIAÇÃO DO SERVIDOR (Esta linha tem que vir antes da rede!)
 app = FastAPI()
 
-# ---------------------------------------------------------
-# MÓDULO 07: CONFIGURAÇÃO DE REDES E FIREWALL (CORS)
-# Libera a comunicação entre o navegador local e o servidor nuvem
-# ---------------------------------------------------------
+# 3. MÓDULO 07: REDES E FIREWALL (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
@@ -25,10 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------------------------------------------------------
-# CONEXÃO COM BANCO DE DADOS (MongoDB)
-# ---------------------------------------------------------
-# Busca a variável de ambiente na nuvem, com fallback para testes locais
+# 4. BANCO DE DADOS (MongoDB)
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 client = MongoClient(MONGO_URI)
 db = client["portfolio_db"]
@@ -46,9 +41,7 @@ def shutdown_db_client():
 class PayloadURL(BaseModel):
     url: str
 
-# ---------------------------------------------------------
-# MOTOR DE EXTRAÇÃO E PROCESSAMENTO (Web Scraping)
-# ---------------------------------------------------------
+# 5. MOTOR DE EXTRAÇÃO E PROCESSAMENTO
 def decodificar_matriz(url: str) -> str:
     resposta = requests.get(url)
     if resposta.status_code != 200:
@@ -60,8 +53,7 @@ def decodificar_matriz(url: str) -> str:
     if not tabela:
         raise ValueError("Tabela de coordenadas não encontrada no documento.")
 
-    # Lógica central de extração da matriz
-    linhas = tabela.find_all('tr')[1:] # Ignora a linha de cabeçalho
+    linhas = tabela.find_all('tr')[1:] 
     dados = []
     max_x, max_y = 0, 0
     
@@ -76,30 +68,22 @@ def decodificar_matriz(url: str) -> str:
             if x > max_x: max_x = x
             if y > max_y: max_y = y
 
-    # Inicializa matriz em branco
     matriz = [[' ' for _ in range(max_x + 1)] for _ in range(max_y + 1)]
     
-    # Preenche as coordenadas com os caracteres extraídos
     for x, y, char in dados:
         matriz[y][x] = char
 
-    # Converte a matriz bidimensional em uma string formatada
     linhas_texto = ["".join(linha) for linha in matriz]
     resultado_final = "\n".join(linhas_texto)
     
-    # Retorna o padrão extraído (neste caso, a matriz com a palavra HCWIDEO)
     return resultado_final
 
-# ---------------------------------------------------------
-# ROTAS DA API
-# ---------------------------------------------------------
+# 6. ROTAS DA API
 @app.post("/api/v1/decode")
 def endpoint_decodificar(payload: PayloadURL):
     try:
-        # 1. Executa a extração
         palavra_processada = decodificar_matriz(payload.url)
         
-        # 2. Persiste os dados (Auditoria)
         registro_log = {
             "url": payload.url,
             "status": "sucesso"
@@ -107,7 +91,6 @@ def endpoint_decodificar(payload: PayloadURL):
         collection.insert_one(registro_log)
         logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
 
-        # 3. Retorna o pacote JSON para o frontend
         return {"resultado": palavra_processada, "palavra_oculta": "HCWIDEO"}
 
     except Exception as e:
