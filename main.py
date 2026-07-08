@@ -97,3 +97,34 @@ def endpoint_decodificar(payload: PayloadURL):
     except Exception as e:
         logger.error(f"Erro interno: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+    # 7. ROTA DE INTELIGÊNCIA ANALÍTICA (DASHBOARD)
+@app.get("/api/v1/analytics")
+def endpoint_analytics():
+    try:
+        # Conta o total absoluto de usos
+        total_usos = collection.count_documents({})
+        
+        # Conta quantos usos tiveram sucesso
+        total_sucessos = collection.count_documents({"status": "sucesso"})
+        
+        # Calcula o KPI de taxa de sucesso
+        taxa = 0
+        if total_usos > 0:
+            taxa = (total_sucessos / total_usos) * 100
+
+        # Busca os 5 registros mais recentes (ocultando o _id do Mongo para não quebrar o JSON)
+        ultimos_acessos = list(collection.find({}, {"_id": 0}).sort("_id", -1).limit(5))
+
+        return {
+            "kpis": {
+                "total_processamentos": total_usos,
+                "taxa_sucesso": f"{taxa:.1f}%"
+            },
+            "registros_recentes": ultimos_acessos
+        }
+
+    except Exception as e:
+        logger.error(f"Erro ao gerar analytics: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao buscar KPIs")
