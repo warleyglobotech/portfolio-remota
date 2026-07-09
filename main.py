@@ -89,7 +89,7 @@ def endpoint_decodificar(payload: PayloadURL):
             "url": payload.url,
             "status": "sucesso"
         }
-        collection.insert_one(registro_log)
+         collection.insert_one(registro_log)
         logger.info("--- DADO SALVO NO MONGODB COM SUCESSO ---")
 
         return {"resultado": palavra_processada, "palavra_oculta": "HCWIDEO"}
@@ -99,7 +99,7 @@ def endpoint_decodificar(payload: PayloadURL):
         raise HTTPException(status_code=400, detail=str(e))
     
 
-    # 7. ROTA DE INTELIGÊNCIA ANALÍTICA (DASHBOARD)
+# 7. ROTA DE INTELIGÊNCIA ANALÍTICA (DASHBOARD)
 @app.get("/api/v1/analytics")
 def endpoint_analytics():
     try:

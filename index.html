@@ -3,31 +3,343 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decodificador de Matrizes</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Extrator de Coordenadas & Analytics</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 650px;
+        }
+
+        /* CARD PRINCIPAL DO EXTRATOR */
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 26px;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #dcdde1;
+            border-radius: 8px;
+            font-size: 16px;
+            color: #2f3640;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+
+        button.btn-processar {
+            width: 100%;
+            padding: 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button.btn-processar:hover {
+            background-color: #0056b3;
+        }
+
+        /* CONTAINER DE RESULTADO (VICTORY SCREEN) */
+        .result-container {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f1f2f6;
+            border-left: 5px solid #2ed573;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 16px;
+            color: #2f3640;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 24px;
+            color: #2ed573;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* DASHBOARD DE INTELIGÊNCIA ANALÍTICA */
+        .dashboard-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e1e8ed;
+        }
+
+        .dashboard-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            flex: 1;
+            text-align: center;
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            color: #718096;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            margin: 8px 0 0 0;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        #kpi-total { color: #0056b3; }
+        #kpi-taxa { color: #28a745; }
+
+        .section-subtitles {
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .logs-list {
+            background: #ffffff;
+            border: 1px solid #edf2f7;
+            border-radius: 6px;
+            padding: 0;
+            margin: 0 0 20px 0;
+            list-style: none;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .logs-list li {
+            padding: 12px 15px;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        .logs-list li:last-child {
+            border-bottom: none;
+        }
+
+        button.btn-refresh {
+            padding: 10px 20px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button.btn-refresh:hover {
+            background-color: #5a6268;
+        }
+    </style>
 </head>
 <body>
-    <main class="container">
-        <header>
-            <h1>Extrator de Coordenadas</h1>
-            <p>Insira a URL do documento fonte para processar e decodificar os dados.</p>
-        </header>
 
-        <section class="input-area">
-            <input type="url" id="inputUrl" placeholder="Cole o link aqui..." required autocomplete="off">
-            <button id="btnProcessar">Processar</button>
-        </section>
-
-        <div id="loading" class="escondido">
-            <p>Extraindo dados da matriz...</p>
+    <div class="main-container">
+        
+        <div class="card">
+            <h2>Extrator de Coordenadas</h2>
+            <div class="subtitle">
+                Insira a URL do documento fonte para processar e decodificar os dados.
+            </div>
+            
+            <div class="input-group">
+                <input type="text" id="urlInput" placeholder="Cole o link aqui..." autocomplete="off">
+            </div>
+            
+            <button class="btn-processar" onclick="processarDocumento()">Processar</button>
+            
+            <div class="result-container" id="resultBox">
+                <div class="result-title">Palavra Oculta:</div>
+                <div class="result-value" id="hiddenWord">--</div>
+            </div>
         </div>
 
-        <section id="areaResultado" class="escondido">
-            <h2>Palavra Oculta:</h2>
-            <p id="textoResultado"></p>
-        </section>
-    </main>
+        <div class="dashboard-card">
+            <div class="dashboard-title">📊 KPIs e Frequência de Uso</div>
+            
+            <div class="kpi-group">
+                <div class="kpi-box">
+                    <div class="kpi-label">Total de Matrículas/Processos</div>
+                    <div class="kpi-value" id="kpi-total">--</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">Taxa de Sucesso</div>
+                    <div class="kpi-value" id="kpi-taxa">--</div>
+                </div>
+            </div>
 
-    <script src="script.js"></script>
+            <div class="section-subtitles">Últimos Registros Auditados</div>
+            <ul class="logs-list" id="lista-logs">
+                <li>Sincronizando com o MongoDB Atlas...</li>
+            </ul>
+            
+            <button class="btn-refresh" onclick="carregarMetricas()">Atualizar Painel</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Configuração global da URL do seu backend no Render
+        const BASE_URL = "https://portfolio-remota.onrender.com";
+
+        // MOTOR 01: Processamento e Extração da Matriz
+        async function processarDocumento() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            const resultBox = document.getElementById('resultBox');
+            const hiddenWord = document.getElementById('hiddenWord');
+            
+            if (!urlInput) {
+                alert("Por favor, cole uma URL válida antes de processar.");
+                return;
+            }
+
+            hiddenWord.innerText = "Processando...";
+            resultBox.style.display = "block";
+
+            try {
+                const resposta = await fetch(`${BASE_URL}/api/v1/decode`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: urlInput })
+                });
+
+                if (!resposta.ok) {
+                    throw new Error("Erro na extração dos dados do documento.");
+                }
+
+                const dados = await resposta.json();
+                
+                // Exibe a palavra decodificada na tela
+                hiddenWord.innerText = dados.palavra_oculta;
+                
+                // Inteligência Analítica: Atualiza o painel de KPIs imediatamente após o uso
+                carregarMetricas();
+
+            } catch (erro) {
+                console.error(erro);
+                hiddenWord.innerHTML = `<span style="color: #e74c3c; font-size: 16px;">Falha no processamento</span>`;
+                carregarMetricas();
+            }
+        }
+
+        // MOTOR 02: Puxar Métricas do Banco de Dados (MongoDB)
+        async function carregarMetricas() {
+            try {
+                const resposta = await fetch(`${BASE_URL}/api/v1/analytics`);
+                
+                if (!resposta.ok) {
+                    throw new Error("Não foi possível ler os dados de auditoria.");
+                }
+                
+                const dados = await resposta.json();
+                
+                // Alimenta os elementos visuais com os dados matemáticos
+                document.getElementById('kpi-total').innerText = dados.kpis.total_processamentos;
+                document.getElementById('kpi-taxa').innerText = dados.kpis.taxa_sucesso;
+                
+                // Atualiza a listagem dos logs recentes
+                const lista = document.getElementById('lista-logs');
+                lista.innerHTML = ""; 
+                
+                if (dados.registros_recentes.length === 0) {
+                    lista.innerHTML = "<li>Nenhum registro encontrado no banco de dados.</li>";
+                    return;
+                }
+
+                dados.registros_recentes.forEach(log => {
+                    const item = document.createElement('li');
+                    // Formata a exibição encurtando o link do documento para caber no layout
+                    const urlCurta = log.url.length > 50 ? log.url.substring(0, 50) + "..." : log.url;
+                    item.innerHTML = `<strong>Status:</strong> <span style="color: ${log.status === 'sucesso' ? '#28a745' : '#dc3545'}">${log.status.toUpperCase()}</span> | <strong>Origem:</strong> ${urlCurta}`;
+                    lista.appendChild(item);
+                });
+
+            } catch (erro) {
+                console.error("Erro no Dashboard:", erro);
+                document.getElementById('lista-logs').innerHTML = `<li style="color: #dc3545;">Erro na conexão com o banco de dados.</li>`;
+            }
+        }
+
+        // Auto-execução: Carrega as métricas assim que o site abre
+        window.onload = carregarMetricas;
+    </script>
 </body>
 </html>

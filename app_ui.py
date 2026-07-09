@@ -34,4 +34,3 @@ if st.button("Decodificar"):
                 st.error(f"Ocorreu um erro: {e}")
     else:
         st.warning("Por favor, cole uma URL válida antes de decodificar.")
-        

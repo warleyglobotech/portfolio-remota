@@ -47,4 +47,3 @@ class SecretGridDecoder:
             resultado.append(linha)
             
         return resultado
-        

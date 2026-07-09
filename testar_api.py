@@ -1,4 +1,5 @@
 import urllib.request
+import urllib.error
 import json
 
 # URL do seu servidor FastAPI
@@ -29,5 +30,8 @@ try:
         print("\n--- DESENHO DECODIFICADO ---\n")
         print(dados['resultado'])
         
+except urllib.error.HTTPError as e:
+    erro_api = e.read().decode('utf-8')
+    print(f"❌ O Servidor respondeu com erro detalhado: {erro_api}")
 except Exception as e:
     print(f"Erro na requisição: {e}")
